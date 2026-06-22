@@ -3,9 +3,26 @@
 import { useRef } from "react";
 import { NdaFormData } from "./NdaForm";
 
+const today = new Date().toISOString().split("T")[0];
+
+const DEFAULTS: NdaFormData = {
+  purpose: "[ purpose not yet specified ]",
+  effectiveDate: today,
+  mndaTermYears: "1",
+  mndaTermType: "fixed",
+  confidentialityTermYears: "1",
+  confidentialityTermType: "fixed",
+  governingLaw: "[ governing law not yet specified ]",
+  jurisdiction: "[ jurisdiction not yet specified ]",
+  party1: { name: "[ Party 1 name ]", title: "[ title ]", company: "[ company ]", noticeAddress: "[ address ]" },
+  party2: { name: "[ Party 2 name ]", title: "[ title ]", company: "[ company ]", noticeAddress: "[ address ]" },
+  modifications: "",
+};
+
 interface Props {
-  data: NdaFormData;
-  onBack: () => void;
+  data: Partial<NdaFormData>;
+  onBack?: () => void;
+  showActions?: boolean;
 }
 
 function formatDate(iso: string) {
@@ -103,26 +120,33 @@ By signing this Cover Page, each party agrees to enter into this MNDA as of the 
 `;
 }
 
-export default function NdaPreview({ data, onBack }: Props) {
+export default function NdaPreview({ data, onBack, showActions = true }: Props) {
   const docRef = useRef<HTMLDivElement>(null);
 
+  const d: NdaFormData = {
+    ...DEFAULTS,
+    ...data,
+    party1: { ...DEFAULTS.party1, ...data.party1 },
+    party2: { ...DEFAULTS.party2, ...data.party2 },
+  };
+
   const mndaTerm =
-    data.mndaTermType === "fixed"
-      ? `Expires ${data.mndaTermYears} year(s) from Effective Date.`
+    d.mndaTermType === "fixed"
+      ? `Expires ${d.mndaTermYears} year(s) from Effective Date.`
       : "Continues until terminated in accordance with the terms of the MNDA.";
 
   const confidentialityTerm =
-    data.confidentialityTermType === "fixed"
-      ? `${data.confidentialityTermYears} year(s) from Effective Date, but in the case of trade secrets until Confidential Information is no longer considered a trade secret under applicable laws.`
+    d.confidentialityTermType === "fixed"
+      ? `${d.confidentialityTermYears} year(s) from Effective Date, but in the case of trade secrets until Confidential Information is no longer considered a trade secret under applicable laws.`
       : "In perpetuity.";
 
   const handleDownload = () => {
-    const md = buildMarkdown(data);
+    const md = buildMarkdown(d);
     const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Mutual-NDA-${data.party1.company || "Party1"}-${data.party2.company || "Party2"}-${data.effectiveDate}.md`;
+    a.download = `Mutual-NDA-${d.party1.company || "Party1"}-${d.party2.company || "Party2"}-${d.effectiveDate}.md`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -131,28 +155,30 @@ export default function NdaPreview({ data, onBack }: Props) {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-6 print:hidden">
-        <button
-          onClick={onBack}
-          className="text-sm text-blue-600 hover:underline flex items-center gap-1"
-        >
-          ← Back to form
-        </button>
-        <div className="flex gap-3">
+      {showActions && (
+        <div className="flex items-center justify-between mb-6 print:hidden">
           <button
-            onClick={handlePrint}
-            className="border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium px-5 py-2 rounded-lg text-sm transition-colors"
+            onClick={onBack}
+            className="text-sm text-blue-600 hover:underline flex items-center gap-1"
           >
-            Print / Save as PDF
+            ← Back to form
           </button>
-          <button
-            onClick={handleDownload}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2 rounded-lg text-sm transition-colors"
-          >
-            Download .md
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={handlePrint}
+              className="border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium px-5 py-2 rounded-lg text-sm transition-colors"
+            >
+              Print / Save as PDF
+            </button>
+            <button
+              onClick={handleDownload}
+              className="bg-[#209dd7] hover:bg-[#1886ba] text-white font-medium px-5 py-2 rounded-lg text-sm transition-colors"
+            >
+              Download .md
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       <div
         ref={docRef}
@@ -166,13 +192,13 @@ export default function NdaPreview({ data, onBack }: Props) {
         <div className="border border-gray-300 rounded-lg p-6 mb-8 space-y-5">
           <h2 className="font-semibold text-base border-b pb-2">Cover Page</h2>
 
-          <Row label="Purpose" value={data.purpose} />
-          <Row label="Effective Date" value={formatDate(data.effectiveDate)} />
+          <Row label="Purpose" value={d.purpose} />
+          <Row label="Effective Date" value={formatDate(d.effectiveDate)} />
           <Row label="MNDA Term" value={mndaTerm} />
           <Row label="Term of Confidentiality" value={confidentialityTerm} />
-          <Row label="Governing Law" value={data.governingLaw} />
-          <Row label="Jurisdiction" value={data.jurisdiction} />
-          {data.modifications && <Row label="MNDA Modifications" value={data.modifications} />}
+          <Row label="Governing Law" value={d.governingLaw} />
+          <Row label="Jurisdiction" value={d.jurisdiction} />
+          {d.modifications && <Row label="MNDA Modifications" value={d.modifications} />}
 
           <div className="pt-2">
             <p className="text-xs text-gray-500 mb-3">
@@ -187,11 +213,11 @@ export default function NdaPreview({ data, onBack }: Props) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                <SignatureRow label="Print Name" v1={data.party1.name} v2={data.party2.name} />
-                <SignatureRow label="Title" v1={data.party1.title} v2={data.party2.title} />
-                <SignatureRow label="Company" v1={data.party1.company} v2={data.party2.company} />
-                <SignatureRow label="Notice Address" v1={data.party1.noticeAddress} v2={data.party2.noticeAddress} />
-                <SignatureRow label="Date" v1={formatDate(data.effectiveDate)} v2={formatDate(data.effectiveDate)} />
+                <SignatureRow label="Print Name" v1={d.party1.name} v2={d.party2.name} />
+                <SignatureRow label="Title" v1={d.party1.title} v2={d.party2.title} />
+                <SignatureRow label="Company" v1={d.party1.company} v2={d.party2.company} />
+                <SignatureRow label="Notice Address" v1={d.party1.noticeAddress} v2={d.party2.noticeAddress} />
+                <SignatureRow label="Date" v1={formatDate(d.effectiveDate)} v2={formatDate(d.effectiveDate)} />
                 <tr>
                   <td className="py-3 pr-4 text-gray-600 font-medium">Signature</td>
                   <td className="py-3 pr-4 border-b border-gray-400 w-48">&nbsp;</td>
@@ -206,10 +232,10 @@ export default function NdaPreview({ data, onBack }: Props) {
 
         <ol className="list-decimal list-outside space-y-4 pl-5">
           <li>
-            <strong>Introduction.</strong> This Mutual Non-Disclosure Agreement (which incorporates these Standard Terms and the Cover Page) ("MNDA") allows each party ("Disclosing Party") to disclose or make available information in connection with the <Pill>{data.purpose}</Pill> which (1) the Disclosing Party identifies to the receiving party ("Receiving Party") as "confidential", "proprietary", or the like or (2) should be reasonably understood as confidential or proprietary due to its nature and the circumstances of its disclosure ("Confidential Information"). Each party is identified on the Cover Page and capitalized terms have the meanings given herein or on the Cover Page.
+            <strong>Introduction.</strong> This Mutual Non-Disclosure Agreement (which incorporates these Standard Terms and the Cover Page) ("MNDA") allows each party ("Disclosing Party") to disclose or make available information in connection with the <Pill>{d.purpose}</Pill> which (1) the Disclosing Party identifies to the receiving party ("Receiving Party") as "confidential", "proprietary", or the like or (2) should be reasonably understood as confidential or proprietary due to its nature and the circumstances of its disclosure ("Confidential Information"). Each party is identified on the Cover Page and capitalized terms have the meanings given herein or on the Cover Page.
           </li>
           <li>
-            <strong>Use and Protection of Confidential Information.</strong> The Receiving Party shall: (a) use Confidential Information solely for the <Pill>{data.purpose}</Pill>; (b) not disclose Confidential Information to third parties without the Disclosing Party's prior written approval; and (c) protect Confidential Information using at least the same protections the Receiving Party uses for its own similar information but no less than a reasonable standard of care.
+            <strong>Use and Protection of Confidential Information.</strong> The Receiving Party shall: (a) use Confidential Information solely for the <Pill>{d.purpose}</Pill>; (b) not disclose Confidential Information to third parties without the Disclosing Party's prior written approval; and (c) protect Confidential Information using at least the same protections the Receiving Party uses for its own similar information but no less than a reasonable standard of care.
           </li>
           <li>
             <strong>Exceptions.</strong> The Receiving Party's obligations in this MNDA do not apply to information that it can demonstrate: (a) is or becomes publicly available through no fault of the Receiving Party; (b) it rightfully knew or possessed prior to receipt from the Disclosing Party without confidentiality restrictions; (c) it rightfully obtained from a third party without confidentiality restrictions; or (d) it independently developed without using or referencing the Confidential Information.
@@ -218,7 +244,7 @@ export default function NdaPreview({ data, onBack }: Props) {
             <strong>Disclosures Required by Law.</strong> The Receiving Party may disclose Confidential Information to the extent required by law, provided it gives the Disclosing Party reasonable advance notice of the required disclosure.
           </li>
           <li>
-            <strong>Term and Termination.</strong> This MNDA commences on the Effective Date (<Pill>{formatDate(data.effectiveDate)}</Pill>) and the MNDA Term is: <Pill>{mndaTerm}</Pill>. The Receiving Party's confidentiality obligations survive for the Term of Confidentiality: <Pill>{confidentialityTerm}</Pill>
+            <strong>Term and Termination.</strong> This MNDA commences on the Effective Date (<Pill>{formatDate(d.effectiveDate)}</Pill>) and the MNDA Term is: <Pill>{mndaTerm}</Pill>. The Receiving Party's confidentiality obligations survive for the Term of Confidentiality: <Pill>{confidentialityTerm}</Pill>
           </li>
           <li>
             <strong>Return or Destruction of Confidential Information.</strong> Upon expiration or termination, the Receiving Party will cease using, and promptly destroy or return, all Confidential Information in its possession or control.
@@ -230,7 +256,7 @@ export default function NdaPreview({ data, onBack }: Props) {
             <strong>Disclaimer.</strong> ALL CONFIDENTIAL INFORMATION IS PROVIDED "AS IS", WITH ALL FAULTS, AND WITHOUT WARRANTIES, INCLUDING THE IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
           </li>
           <li>
-            <strong>Governing Law and Jurisdiction.</strong> This MNDA is governed by the laws of the State of <Pill>{data.governingLaw}</Pill>. Any legal proceedings must be instituted in <Pill>{data.jurisdiction}</Pill>.
+            <strong>Governing Law and Jurisdiction.</strong> This MNDA is governed by the laws of the State of <Pill>{d.governingLaw}</Pill>. Any legal proceedings must be instituted in <Pill>{d.jurisdiction}</Pill>.
           </li>
           <li>
             <strong>Equitable Relief.</strong> A breach of this MNDA may cause irreparable harm; the Disclosing Party is entitled to seek equitable relief, including an injunction.
