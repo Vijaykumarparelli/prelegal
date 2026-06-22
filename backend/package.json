@@ -1,0 +1,22 @@
+{
+  "name": "backend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9",
+    "cors": "^2",
+    "express": "^4"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7",
+    "@types/cors": "^2",
+    "@types/express": "^4",
+    "tsx": "^4",
+    "typescript": "^5"
+  }
+}
