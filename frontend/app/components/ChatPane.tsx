@@ -46,7 +46,7 @@ export default function ChatPane({ messages, isLoading, onSend }: Props) {
     <div className="flex flex-col h-full bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
         <h2 className="text-sm font-semibold text-gray-700">AI Assistant</h2>
-        <p className="text-xs text-gray-400 mt-0.5">Describe your NDA needs — I'll fill in the document as we chat</p>
+        <p className="text-xs text-gray-400 mt-0.5">Tell me what document you need — I'll guide you through creating it</p>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
